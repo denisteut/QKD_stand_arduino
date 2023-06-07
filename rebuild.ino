@@ -1,5 +1,5 @@
 /*
-    Version: 0.2
+    Version: 0.21
 */
 
 #include <Adafruit_ADS1X15.h>
@@ -374,12 +374,17 @@ void Send(){
           outbuff[0] = 1;
           EEPROM.get(0, outbuff[1]);
           break;
-        case 'K':                       //GetStartPlatesAngles
-          outbuff[0] = 4;
+        case 'K':                       //GetInitParams (prev: GetStartPlatesAngles)
+          outbuff[0] = 9;
           outbuff[1] = Stand.BaseAngle1;
           outbuff[2] = Stand.BaseAngle2;
           outbuff[3] = Stand.BaseAngle3;
           outbuff[4] = Stand.BaseAngle4;
+          outbuff[5] = Stand.StartNoiseLevel1;
+          outbuff[6] = Stand.StartNoiseLevel2;
+          outbuff[7] = Stand.MaxNoiseLevel1;
+          outbuff[8] = Stand.MaxNoiseLevel2;
+          outbuff[9] = Stand.MaxLaserPower; 
           break;
         case 'L':                       //GetCurPlatesAngles
           outbuff[0] = 4;
