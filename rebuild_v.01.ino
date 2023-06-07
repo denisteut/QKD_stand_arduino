@@ -144,11 +144,11 @@ void setup() {
 }
 
 void loop() {
-  while (Listening()){
+  if (Listening()){
+    
     Send(); //Действия, отправка
   }
   ReWrite(); //очистка, подготовка к новому циклу
-  
   
 }
 // Подсчет контрольной суммы на входе массив и его длинна в байтах
@@ -165,17 +165,20 @@ bool Listening(){
   bool WrongCRC_Flag = false;
   int res;
   buff[0] = Serial.read();
-  while(true){ //поиск начала пакета
-    buff[1] == Serial.read();
+  //поиск начала пакета
+  while(true){ 
+    buff[1] = Serial.read();
     if(buff[0] == 255 && buff[1] == 254){
+    
       break;
     }
     buff[0] = buff[1];
   }
   delay(10); // TODO minim
-
-  for(int i = 2; i < buffsize; i++){ //чтение байтов пришедших после символов начала пакета
-    buff[i] == Serial.read();
+  //чтение байтов пришедших после символов начала пакета
+  for(int i = 2; i < buffsize; i++){ 
+    buff[i] = Serial.read();
+    
     if(buff[i] == 255){
       i++;
       buff[i] = Serial.read();
@@ -193,12 +196,13 @@ bool Listening(){
       }
     }
   }
+
   if(res >= buffsize){
     current.condbyte += 4;//Нет метки конца пакета
     current.condbyte += 2;//большое кол-во параметров
   }
   // buff[] записан, парсинг
-  current.key = (int)buff[2];
+  current.key = buff[2];
   for (int i = 0; i < current.params*2; i=i+2)
   {
     current.value [i/2]= (buff[i+3]<<8)| buff[i+4];
@@ -207,6 +211,7 @@ bool Listening(){
     ReturnPackage(buff); //отправка пакета назад
     return false;//несоответстие контрольной суммы 
   }
+  //Serial.write(buff,64);
   return true;
 }
 
