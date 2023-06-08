@@ -1,5 +1,5 @@
 /*
-    Version: 0.21
+    Version: 0.22
 */
 
 #include <Adafruit_ADS1X15.h>
@@ -183,10 +183,10 @@ bool Listening(){
   for(int i = 2; i < buffsize; i++){ 
     buff[i] = Serial.read();
     
-    if(buff[i] == 255){
+    if(buff[i] == 255 && CheckCRC(i-1) != 0){
       i++;
       buff[i] = Serial.read();
-      if(buff[i] == 255){
+      if(buff[i] == 255 ){
         res = i;
         current.params = (i - 6)/2;
         if(CheckCRC(i-3) == 0){
@@ -202,6 +202,7 @@ bool Listening(){
   }
 
   if(res >= buffsize){
+    WrongCRC_Flag = true;
     current.condbyte += 4;//Нет метки конца пакета
     current.condbyte += 2;//большое кол-во параметров
   }
