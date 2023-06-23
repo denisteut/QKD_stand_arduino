@@ -644,6 +644,7 @@ void SendMessage(unsigned int Steps1, unsigned int Steps2, unsigned int Steps3, 
   SetLaserState(1);
   SetLaserPower(lpower); 
   SetPlatesAngles(Steps1, Steps2,  Steps3,  Steps4);
+  GetLightNoises();
   GetSignalsLevels();
 }
 //установка пластин в начальное положение по концевикам
