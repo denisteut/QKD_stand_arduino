@@ -880,13 +880,15 @@ void GetLightNoises(){
     if(Stand.LaserState == 1){
     flag = true;    
   }
+   // ожидание для реакции фотодетекторов 
   SetLaserState(0);
-  delay(300);    // ожидание для реакции фотодетекторов 
+     
   GetSignalsLevels();
   Stand.StartNoiseLevel1 = Stand.NoiseLevel1;
   Stand.StartNoiseLevel2 = Stand.NoiseLevel2;
     if(flag){
     SetLaserState(1);
+    delay(150);
   }
 }
 void Init(){
@@ -1054,7 +1056,7 @@ bool RotateWhileNotLineal(){
 // Настройка мощности лазера для работы фотодетекторов в линейном режиме
 void ToLineal(){
 	SetLaserState(1);
-	Stand.MaxLaserPower = 60;
+	Stand.MaxLaserPower = 80;
 	int StartPD1, StartPD2, MaxPD, TempPD1, TempPD2;
 	SetLaserPower(Stand.MaxLaserPower);
 	GetSignalsLevels();
@@ -1138,5 +1140,33 @@ void GetSens(){
   Serial.print(AllPowerPD1);
   Serial.print(AllPowerPD2);
 }
+
+//xc - точка, для которой вычисляется функция, x[], y[] - наборы существующих точек
+double Lagrange(double xc, double x[],double y[]) {
+  double Ch; 
+  double Zn;
+  double n = sizeof(x) / sizeof(x[0]); // количество элементов в массиве
+  int k;
+  double result = 0;
+  for (int i = 0; i < n; i++) { 
+    Ch = 1; 
+    Zn = 1;
+    for (k = 0; k < n; k++ ) {
+      if ( k == i ) 
+        continue;
+      Ch *= xc - x[k];
+    }
+    for(k= 0; k < n;k++) {
+      if (x[i] == x[k]) 
+        continue; 
+      Zn *= x[i] - x[k];
+    }
+    result += y[i]*Ch/Zn;
+  }
+  
+  return result; 
+
+}
+
 
 
