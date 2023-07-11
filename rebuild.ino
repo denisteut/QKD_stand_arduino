@@ -1,5 +1,5 @@
 /*
-    Version: 0.22
+    Version: 0.23
 */
 
 #include <Adafruit_ADS1X15.h>
@@ -64,7 +64,7 @@
   struct Message {
     char condbyte = 0;      // Байт состояния
     char key;              // Символ передаваемой команды
-    unsigned int value[10];    // Параметры команды
+    unsigned int value[50];    // Параметры команды
     uint8_t checksum;// Контрольная сумма
     unsigned int params; //число паарметров 
     }; 
@@ -102,9 +102,9 @@
 // ------------------
 // Глобальные переменные 
   int delayMK = 50;
-  const int buffsize = 64;
+  const int buffsize = 128;
   byte buff[buffsize];          //Буфер приема в buffsize байта
-  unsigned int outbuff[buffsize];
+  unsigned int outbuff[buffsize/2];
   byte printbuff[buffsize];   // буфер для отправки на пк
   Message current;        //Экземпляр структуры для записи пакета
 // ------------------
@@ -1168,5 +1168,34 @@ double Lagrange(double xc, double x[],double y[]) {
 
 }
 
+void RunTests(){
+  bool laser_test = TestLaser();
 
 
+}
+
+
+bool TestLaser(){
+  SetLaserPower(0);
+  SetLaserState(0);
+  SetLaserState(1);
+  SetLaserPower(100);
+  GetSignalsLevels();
+  if(Stand.NoiseLevel1 > 16 || Stand.NoiseLevel2 > 16){
+    return true;
+  }
+  else{
+    return false;
+  }
+  
+}
+bool TestPlates(){
+  SetLaserPower(0);
+  SetLaserState(0);
+  SetLaserState(1);
+  SetLaserPower(60);
+  GetSignalsLevels();
+  int signal1 = Stand.NoiseLevel1, signal2 = Stand.NoiseLevel2;
+  SetPlatesAngles(0,0,0,0);
+
+}
