@@ -64,9 +64,10 @@
   struct Message {
     char condbyte = 0;      // Байт состояния
     char key;              // Символ передаваемой команды
-    unsigned int value[50];    // Параметры команды
+    unsigned int value[75];    // Параметры команды
     uint8_t checksum;// Контрольная сумма
     unsigned int params; //число паарметров 
+    unsigned int lagre; // размер пакета 
     }; 
   //Структура, содержащая некоторые текущие значения показателей стенда
   struct{
@@ -99,10 +100,17 @@
     unsigned int Angle4 = 0;
   } BaseAngles;
 
+  // Структура, хранящая в себе размеры буферов
+  struct{
+    unsigned int buff;
+    unsigned int outbuff;
+    unsigned int printbuff;
+  } Sizes;
+
 // ------------------
 // Глобальные переменные 
   int delayMK = 50;
-  const int buffsize = 128;
+  const int buffsize = 157;
   byte buff[buffsize];          //Буфер приема в buffsize байта
   unsigned int outbuff[buffsize/2];
   byte printbuff[buffsize];   // буфер для отправки на пк
@@ -187,7 +195,7 @@ bool Listening(){
       i++;
       buff[i] = Serial.read();
       if(buff[i] == 255 ){
-        res = i;
+        Sizes.buff = i;
         current.params = (i - 6)/2;
         if(CheckCRC(i-3) == 0){
           break;
@@ -201,7 +209,7 @@ bool Listening(){
     }
   }
 
-  if(res >= buffsize){
+  if(Sizes.buff >= buffsize){
     WrongCRC_Flag = true;
     current.condbyte += 4;//Нет метки конца пакета
     current.condbyte += 2;//большое кол-во параметров
@@ -232,7 +240,7 @@ void ReturnPackage (byte value[]){
 
 void SendUART(){
     BuildMessage(outbuff);
-    Serial.write(printbuff, buffsize);
+    Serial.write(printbuff, Sizes.printbuff);
 }
 // строит вывод в массив printbuff
 // первый байт в value отвечает за число переменных
@@ -258,15 +266,17 @@ void BuildMessage (unsigned int value[]){
   printbuff[pointer+1] = GetCRC((byte*)&data, pointer-1);
   printbuff[pointer + 2] = B11111111; 
   printbuff[pointer + 3] = B11111111;
+  Sizes.printbuff = pointer + 4;
 }
 void ReWrite(){
   current.condbyte = NULL;
   current.key = NULL;
   current.checksum = NULL;
+  Sizes.outbuff = outbuff[0] + 1;
   memset(current.value, 0, sizeof(current.value));
-  memset(buff, 0, sizeof(buff));
-  memset(outbuff, 0, sizeof(outbuff));
-  memset(printbuff, 0, sizeof(printbuff));
+  memset(buff, 0, Sizes.buff);
+  memset(outbuff, 0, Sizes.outbuff);
+  memset(printbuff, 0, Sizes.printbuff);
 }
 
 uint8_t CheckCRC(int n){
@@ -540,6 +550,51 @@ void SetPlateAngle(int Steps, unsigned int PlateID){
   }
 }
 void SetPlatesAngles(int Steps1, int Steps2,  int Steps3,  int Steps4){
+
+  int d1 = Steps1 - Stand.Angle1;
+  int d2 = Steps2 - Stand.Angle2;
+  int d3 = Steps3 - Stand.Angle3;
+  int d4 = Steps4 - Stand.Angle4;
+
+  int a1 = Stand.Angle1;
+  int a2 = Stand.Angle2;
+  int a3 = Stand.Angle3;
+  int a4 = Stand.Angle4;
+
+
+  if (abs(d1)>600){
+    if (d1 > 0){
+      stepper1.setCurrent(a1 + 1200);
+    }
+    else{
+      stepper1.setCurrent(a1 - 1200);
+    }
+  }
+  if (abs(d2)>600){
+    if (d2 > 0){
+      stepper2.setCurrent(a2 + 1200);
+    }
+    else{
+      stepper2.setCurrent(a2 - 1200);
+    }
+  }
+  if (abs(d3)>600){
+    if (d3 > 0){
+      stepper3.setCurrent(a3 + 1200);
+    }
+    else{
+      stepper3.setCurrent(a3 - 1200);
+    }
+  }
+  if (abs(d4)>600){
+    if (d4 > 0){
+      stepper4.setCurrent(a4 + 1200);
+    }
+    else{
+      stepper4.setCurrent(a4 - 1200);
+    }
+  }
+
   Stand.Angle1 = Steps1;
   Stand.Angle2 = Steps2;
   Stand.Angle3 = Steps3;
