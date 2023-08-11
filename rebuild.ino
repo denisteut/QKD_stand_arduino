@@ -110,7 +110,7 @@
 // ------------------
 // Глобальные переменные 
   int delayMK = 50;
-  const int buffsize = 157;
+  const int buffsize = 160;
   byte buff[buffsize];          //Буфер приема в buffsize байта
   unsigned int outbuff[buffsize/2];
   byte printbuff[buffsize];   // буфер для отправки на пк
@@ -232,8 +232,9 @@ bool Listening(){
 //n - количесво байт для подсчета (за вычетом заголовка)
 void ReturnPackage (byte value[]){
   outbuff[0] = current.params;
-  for (int i=0; i<current.params*2; i++){
-    outbuff[i+1]=value[i+3];
+  for (int i=0; i<current.params * 2; i=i+2){
+    
+    outbuff[i/2+1]= (value[i+3]<<8)| value[i+4];
   }
   SendUART();
 }
@@ -274,9 +275,9 @@ void ReWrite(){
   current.checksum = NULL;
   Sizes.outbuff = outbuff[0] + 1;
   memset(current.value, 0, sizeof(current.value));
-  memset(buff, 0, Sizes.buff);
-  memset(outbuff, 0, Sizes.outbuff);
-  memset(printbuff, 0, Sizes.printbuff);
+  memset(buff, NULL, Sizes.buff);
+  memset(outbuff, NULL, Sizes.outbuff);
+  memset(printbuff, NULL, Sizes.printbuff);
 }
 
 uint8_t CheckCRC(int n){
@@ -484,7 +485,10 @@ void Send(){
           outbuff[4] = BaseAngles.Angle4;
           break;
         default:
-          current.condbyte +=8; //Неизвестный ID
+          
+          
+          current.condbyte +=1; //Неизвестный ID 8
+          ReturnPackage(buff);
           break;
     }
     if(current.condbyte == 0)
