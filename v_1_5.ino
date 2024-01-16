@@ -62,12 +62,13 @@
 //Структуры
   // Структура сообщения 
   struct Message {
-    char condbyte = 0;      // Байт состояния
-    char key;              // Символ передаваемой команды
+    unsigned int lenght = 0;         //длинна пакета
+    char condbyte = 0;      // код ошибки
+    char key;              // ID команды
     unsigned int value[75];    // Параметры команды
     uint8_t checksum;// Контрольная сумма
     unsigned int params; //число паарметров 
-    unsigned int lagre; // размер пакета 
+    
     }; 
   //Структура, содержащая некоторые текущие значения показателей стенда
   struct{
@@ -190,7 +191,7 @@ bool Listening(){
     }
     buff[0] = buff[1];
   }
-  delay(10); // TODO minim
+  delay(10); 
   //чтение байтов пришедших после символов начала пакета
   for(int i = 2; i < buffsize; i++){ 
     buff[i] = Serial.read();
@@ -200,7 +201,7 @@ bool Listening(){
       buff[i] = Serial.read();
       if(buff[i] == 255 ){
         Sizes.buff = i;
-        current.params = (i - 6)/2;
+        current.params = (i - 8)/2;
         if(CheckCRC(i-3) == 0){
           break;
         }
@@ -219,16 +220,16 @@ bool Listening(){
     current.condbyte += 2;//большое кол-во параметров
   }
   // buff[] записан, парсинг
-  current.key = buff[2];
+  current.key = buff[4];
+  current.lenght = buff[2]<<8 | buff[3];
   for (int i = 0; i < current.params*2; i=i+2)
   {
-    current.value [i/2]= (buff[i+3]<<8)| buff[i+4];
+    current.value [i/2]= (buff[i+5]<<8)| buff[i+6];
   }
   if(WrongCRC_Flag){
     ReturnPackage(buff); //отправка пакета назад
     return false;//несоответстие контрольной суммы 
   }
-  //Serial.write(buff,64);
   return true;
 }
 
@@ -250,13 +251,17 @@ void SendUART(){
 // строит вывод в массив printbuff
 // первый байт в value отвечает за число переменных
 void BuildMessage (unsigned int value[]){
+  current.lenght = value[0]*2 + 3; // params + id + condbyte + salt
   memset(printbuff, 0, sizeof(printbuff));
-  int pointer = 4;
+  int pointer = 6;
   byte data[buffsize];
   printbuff[0] = B11111111; //255
   printbuff[1] = B11111110; //254
-  printbuff[2] = (byte)current.key;
-  printbuff[3] = (byte)current.condbyte;
+  printbuff[2] = current.lenght / 256;
+  printbuff[3] = current.lenght % 256;
+
+  printbuff[4] = (byte)current.key;
+  printbuff[5] = (byte)current.condbyte;
 
   for(unsigned int i = 1; i < value[0]+1; i++){    
     printbuff[pointer] = (byte)(value[i] / 256);
@@ -271,7 +276,7 @@ void BuildMessage (unsigned int value[]){
   printbuff[pointer+1] = GetCRC((byte*)&data, pointer-1);
   printbuff[pointer + 2] = B11111111; 
   printbuff[pointer + 3] = B11111111;
-  Sizes.printbuff = pointer + 4;
+  Sizes.printbuff = pointer + 6;
 }
 void ReWrite(){
   current.condbyte = NULL;
@@ -295,7 +300,7 @@ uint8_t CheckCRC(int n){
 
 void Send(){
     switch(current.key){
-        case 'A':                       //Init
+        case 65:                       //Init
           Init();
           outbuff[0] = 9;
           outbuff[1] = Stand.BaseAngle1;
@@ -308,7 +313,7 @@ void Send(){
           outbuff[8] = Stand.MaxSignalLevel2;
           outbuff[9] = Stand.MaxLaserPower; 
           break;
-        case 'B':                       //SendMessage
+        case 66:                       //SendMessage
           SendMessage(current.value[0], current.value[1], current.value[2], current.value[3], current.value[4]);
           outbuff[0] = 8;
           outbuff[1] = Stand.Angle1;
@@ -320,20 +325,20 @@ void Send(){
           outbuff[7] = Stand.NoiseLevel1;
           outbuff[8] = Stand.NoiseLevel2;
           break;
-        case 'C':                       //SetLaserState
+        case 67:                       //SetLaserState
           SetLaserState(current.value[0]);
           delayMicroseconds(100);
           outbuff[0] = 1;
           outbuff[1] = current.value[0];
           break;
-        case 'D':                       //SetLaserPower
+        case 68:                       //SetLaserPower
           SetLaserPower(current.value[0]);
           delayMicroseconds(100);
           Stand.LaserPower = current.value[0];
           outbuff[0] = 1;
           outbuff[1] = Stand.LaserPower;
           break;
-        case 'E':                       //SetPlateAngle
+        case 69:                       //SetPlateAngle
               
               SetPlateAngle(current.value[0], current.value[1]);
               delayMicroseconds(100);
@@ -367,30 +372,30 @@ void Send(){
               break;
           }
           break;
-        case 'F':                       //SetTimeout - реализация на уровне API
+        case 70:                       //SetTimeout - реализация на уровне API
           SetTimeout(current.value[0]);
           outbuff[0] = 1;
           EEPROM.get(0, outbuff[1]);
           break;
-        case 'G':                       //GetErrorCode 
+        case 71:                       //GetErrorCode 
 
 
           outbuff[0] = 0;
            
           break;
-        case 'H':                       //GetLaserState
+        case 72:                       //GetLaserState
           outbuff[0] = 1;
           outbuff[1] = Stand.LaserState;
           break;
-        case 'I':                       //GetLaserPower
+        case 73:                       //GetLaserPower
           outbuff[0] = 1;
           outbuff[1] = Stand.LaserPower;
           break;
-        case 'J':                       //GetTimeout
+        case 74:                       //GetTimeout
           outbuff[0] = 1;
           EEPROM.get(0, outbuff[1]);
           break;
-        case 'K':                       //GetInitParams (prev: GetStartPlatesAngles)
+        case 75:                       //GetInitParams (prev: GetStartPlatesAngles)
           outbuff[0] = 9;
           outbuff[1] = Stand.BaseAngle1;
           outbuff[2] = Stand.BaseAngle2;
@@ -402,46 +407,46 @@ void Send(){
           outbuff[8] = Stand.MaxSignalLevel2;
           outbuff[9] = Stand.MaxLaserPower; 
           break;
-        case 'L':                       //GetCurPlatesAngles
+        case 76:                       //GetCurPlatesAngles
           outbuff[0] = 4;
           outbuff[1] = Stand.Angle1;
           outbuff[2] = Stand.Angle2;
           outbuff[3] = Stand.Angle3;
           outbuff[4] = Stand.Angle4;
           break;
-        case 'M':                       //GetSignalLevel
+        case 77:                       //GetSignalLevel
           GetSignalsLevels();
           outbuff[0] = 2;
           outbuff[1] = Stand.NoiseLevel1;
           outbuff[2] = Stand.NoiseLevel2;
           break;
-        case 'N':                       //GetRotateStep
+        case 78:                       //GetRotateStep
           outbuff[0] = 1;
           outbuff[1] = Stand.RotateStep;
           break;
-        case 'O':                       //GetMaxLaserPower
+        case 79:                       //GetMaxLaserPower
           outbuff[0] = 1;
           outbuff[1] = Stand.MaxLaserPower;
           break;
-        case 'P':                       //GetLightNoises
+        case 80:                       //GetLightNoises
           GetLightNoises(); 
           outbuff[0] = 2;
           outbuff[1] = Stand.NoiseLevel1;
           outbuff[2] = Stand.NoiseLevel2;
           break;
-        case 'Q':                       //GetStartLightNoises
+        case 81:                       //GetStartLightNoises
           outbuff[0] = 2;
           outbuff[1] = Stand.StartNoiseLevel1;
           outbuff[2] = Stand.StartNoiseLevel2;
           break;
-        case 'R':                       //GetMaxSignalLevel
+        case 82:                       //GetMaxSignalLevel
           outbuff[0] = 2;
           outbuff[1] = Stand.MaxSignalLevel1;
           outbuff[2] = Stand.MaxSignalLevel2;        
           break;
-        case 'S':                       //RunSelfTest
+        case 83:                       //RunSelfTest
           break;
-        case 'T':                       //InitByButtons 2
+        case 84:                       //InitByButtons 2
           Init2 (current.value[0], current.value[1], current.value[2], current.value[3]);
           outbuff[0] = 9;
           outbuff[1] = Stand.BaseAngle1;
@@ -454,7 +459,7 @@ void Send(){
           outbuff[8] = Stand.NoiseLevel2;
           outbuff[9] = Stand.MaxLaserPower;  
           break; 
-        case 'U':                       //SetPlatesAngles 
+        case 85:                       //SetPlatesAngles 
           SetPlatesAngles(current.value[0], current.value[1], current.value[2], current.value[3]);
           outbuff[0] = 4;
           outbuff[1] = Stand.Angle1;
@@ -462,16 +467,16 @@ void Send(){
           outbuff[3] = Stand.Angle3;
           outbuff[4] = Stand.Angle4;
           break;
-        case 'V':                       // получение данных из ячейки ReadEEPROM (byte)
+        case 86:                       // получение данных из ячейки ReadEEPROM (byte)
           outbuff[0] = 1;
           outbuff[1] = EEPROM.read(current.value[0]);
           break;
-        case 'W':                       // запись данных в ячейку, WriteEEPROM
+        case 87:                       // запись данных в ячейку, WriteEEPROM
           EEPROM.put(current.value[0], current.value[1]);
           outbuff[0] = 1;
           outbuff[1] = EEPROM.read(current.value[0]);         
           break;
-        case 'X':                       // Запись в EEPROM базовых углов UpdateBaseAngles
+        case 88:                       // Запись в EEPROM базовых углов UpdateBaseAngles
           UpdateBaseAngles(current.value[0], current.value[1], current.value[2], current.value[3]);
           EEPROM.get(2, BaseAngles);
           outbuff[0] = 4;
@@ -480,7 +485,7 @@ void Send(){
           outbuff[3] = BaseAngles.Angle3;
           outbuff[4] = BaseAngles.Angle4;
           break;
-        case 'Y':                       // Возврат из EEPROM базовых углов ReadBaseAngles
+        case 89:                       // Возврат из EEPROM базовых углов ReadBaseAngles
           EEPROM.get(2, BaseAngles);
           outbuff[0] = 4;
           outbuff[1] = BaseAngles.Angle1;
@@ -1089,7 +1094,8 @@ void Init(){
   Stand.StartNoiseLevel2 = Stand.NoiseLevel2;
   SetLaserPowerDown();
   ToLineal();
-  SetBaseAngle_v2();
+  //SetBaseAngle_v2(); -- Вторая версия инита, пока нерабочая
+  SetBaseAngle();
   FindMaxSignals();
   return;
 }
