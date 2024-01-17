@@ -1,5 +1,5 @@
 /*
-    Version: 0.230816
+  v 1.5
 */
 
 #include <Adafruit_ADS1X15.h>
@@ -61,52 +61,52 @@
   };
 //Структуры
   // Структура сообщения 
-  struct Message {
-    unsigned int lenght = 0;         //длинна пакета
-    char condbyte = 0;      // код ошибки
-    char key;              // ID команды
-    unsigned int value[75];    // Параметры команды
-    uint8_t checksum;// Контрольная сумма
-    unsigned int params; //число паарметров 
-    
-    }; 
+    struct Message {
+      unsigned int lenght = 0;         //длинна пакета
+      char condbyte = 0;      // код ошибки
+      char key;              // ID команды
+      unsigned int value[75];    // Параметры команды
+      uint8_t checksum;// Контрольная сумма
+      unsigned int params; //число паарметров 
+      
+      }; 
   //Структура, содержащая некоторые текущие значения показателей стенда
-  struct{
-    unsigned int MaxLaserPower = 100;
-    int LaserPower = 0; // текущее значение мощности лазера
-    int LaserState = 0; 
-    unsigned int NoiseLevel1 = 0;
-    unsigned int NoiseLevel2 = 0;
-    unsigned int MaxSignalLevel1 = 0;
-    unsigned int MaxSignalLevel2 = 0;
-    double SensPD1 = 1;
-    double SensPD2 = 1;
-    unsigned int RotateStep = 1200;
-    unsigned int StartNoiseLevel1 = 0;
-    unsigned int StartNoiseLevel2 = 0;
-    //Текущие углы поворота пластин
-    unsigned int Angle1 = 0;
-    unsigned int Angle2 = 0;
-    unsigned int Angle3 = 0;
-    unsigned int Angle4 = 0;
-    unsigned int BaseAngle1 = 0;
-    unsigned int BaseAngle2 = 0;
-    unsigned int BaseAngle3 = 0;
-    unsigned int BaseAngle4 = 0;
-    } Stand;     
-  struct{
-    unsigned int Angle1 = 0;
-    unsigned int Angle2 = 0;
-    unsigned int Angle3 = 0;
-    unsigned int Angle4 = 0;
-  } BaseAngles;
+    struct{
+      unsigned int MaxLaserPower = 100;
+      int LaserPower = 0; // текущее значение мощности лазера
+      int LaserState = 0; 
+      unsigned int NoiseLevel1 = 0;
+      unsigned int NoiseLevel2 = 0;
+      unsigned int MaxSignalLevel1 = 0;
+      unsigned int MaxSignalLevel2 = 0;
+      double SensPD1 = 1;
+      double SensPD2 = 1;
+      unsigned int RotateStep = 1200;
+      unsigned int StartNoiseLevel1 = 0;
+      unsigned int StartNoiseLevel2 = 0;
+      //Текущие углы поворота пластин
+      unsigned int Angle1 = 0;
+      unsigned int Angle2 = 0;
+      unsigned int Angle3 = 0;
+      unsigned int Angle4 = 0;
+      unsigned int BaseAngle1 = 0;
+      unsigned int BaseAngle2 = 0;
+      unsigned int BaseAngle3 = 0;
+      unsigned int BaseAngle4 = 0;
+      } Stand;     
+    struct{
+      unsigned int Angle1 = 0;
+      unsigned int Angle2 = 0;
+      unsigned int Angle3 = 0;
+      unsigned int Angle4 = 0;
+    } BaseAngles;
 
   // Структура, хранящая в себе размеры буферов
-  struct{
-    unsigned int buff;
-    unsigned int outbuff;
-    unsigned int printbuff;
-  } Sizes;
+    struct{
+      unsigned int buff;
+      unsigned int outbuff;
+      unsigned int printbuff;
+    } Sizes;
 
 // ------------------
 // Глобальные переменные 
@@ -163,6 +163,7 @@ void loop() {
   if (Listening()){
     
     Send(); //Действия, отправка
+    current.condbyte = 0; // костыль, перенести
   }
   memset(printbuff, NULL, Sizes.printbuff);
   //ReWrite(); //очистка, подготовка к новому циклу
@@ -201,7 +202,7 @@ bool Listening(){
       buff[i] = Serial.read();
       if(buff[i] == 255 ){
         Sizes.buff = i;
-        current.params = (i - 9)/2;
+        current.params = (i - 8)/2;
         if(CheckCRC(i-3) == 0){
           break;
         }
@@ -215,7 +216,7 @@ bool Listening(){
   }
 
   if(Sizes.buff >= buffsize){
-    WrongCRC_Flag = true;
+    //WrongCRC_Flag = true;
     current.condbyte += 4;//Нет метки конца пакета
     current.condbyte += 2;//большое кол-во параметров
   }
@@ -274,7 +275,7 @@ void BuildMessage (unsigned int value[]){
     data[i] = printbuff[i + 2];  
   }  
   printbuff[pointer+1] = GetCRC((byte*)&data, pointer-1);
-  printbuff[pointer + 2] = B11111111; 
+  printbuff[pointer + 2] = B11111111;
   printbuff[pointer + 3] = B11111111;
   Sizes.printbuff = pointer + 6;
 }
@@ -288,7 +289,7 @@ void ReWrite(){
   memset(outbuff, NULL, Sizes.outbuff);
   memset(printbuff, NULL, Sizes.printbuff);
 
-  current.condbyte = 0; // костыль, перенести
+  
 }
 
 uint8_t CheckCRC(int n){
@@ -301,6 +302,7 @@ uint8_t CheckCRC(int n){
 }
 
 void Send(){
+    
     switch(current.key){
         case 65:                       //Init
           Init();
@@ -332,6 +334,7 @@ void Send(){
           delayMicroseconds(100);
           outbuff[0] = 1;
           outbuff[1] = current.value[0];
+          //current.condbyte = current.value[0];
           break;
         case 68:                       //SetLaserPower
           SetLaserPower(current.value[0]);
@@ -509,7 +512,6 @@ void Send(){
     
     SendUART();
 }
-
 
 void UpdateBaseAngles(unsigned int angle1, unsigned int angle2, unsigned int angle3, unsigned int angle4){
   BaseAngles.Angle1 = angle1;
