@@ -201,12 +201,12 @@ bool Listening(){
       buff[i] = Serial.read();
       if(buff[i] == 255 ){
         Sizes.buff = i;
-        current.params = (i - 8)/2;
+        current.params = (i - 9)/2;
         if(CheckCRC(i-3) == 0){
           break;
         }
         else{
-          current.condbyte += 16; //x^4 -- Несоотетствие контрольной суммы
+          current.condbyte += 16; //x^4 -- Несоответствие контрольной суммы
           WrongCRC_Flag = true;
           break;
         }
@@ -226,10 +226,10 @@ bool Listening(){
   {
     current.value [i/2]= (buff[i+5]<<8)| buff[i+6];
   }
-  if(WrongCRC_Flag){
+  /*if(WrongCRC_Flag){
     ReturnPackage(buff); //отправка пакета назад
     return false;//несоответстие контрольной суммы 
-  }
+  }*/
   return true;
 }
 
@@ -287,6 +287,8 @@ void ReWrite(){
   memset(buff, NULL, Sizes.buff);
   memset(outbuff, NULL, Sizes.outbuff);
   memset(printbuff, NULL, Sizes.printbuff);
+
+  current.condbyte = 0; // костыль, перенести
 }
 
 uint8_t CheckCRC(int n){
