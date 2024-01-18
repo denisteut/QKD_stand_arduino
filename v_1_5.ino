@@ -93,6 +93,11 @@
       unsigned int BaseAngle2 = 0;
       unsigned int BaseAngle3 = 0;
       unsigned int BaseAngle4 = 0;
+      // Характеристики стенда
+      unsigned int HardwareState = 0;
+      unsigned int Firmware[3] = {0, 0, 0};
+      unsigned int MaxPayload = 0;
+      unsigned int Secret[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
       } Stand;     
     struct{
       unsigned int Angle1 = 0;
@@ -304,6 +309,38 @@ uint8_t CheckCRC(int n){
 void Send(){
     
     switch(current.key){
+
+        case 17:                        //GetCurrentFirmwareVersion
+          outbuff[0] = 3;
+          outbuff[1] = Stand.Firmware[0];
+          outbuff[2] = Stand.Firmware[1];
+          outbuff[3] = Stand.Firmware[2];
+          break;
+        case 19:                        //GetMaxPayloadSize
+          outbuff[0] = 1;
+          outbuff[1] = Stand.MaxPayload;
+          break;
+        case 48:                        //CreateConfigSecret
+
+          outbuff[0] = 1;
+          outbuff[1] = CreateConfigSecret();
+          break;
+        case 49:                        //OpenConfigMode
+          bool status = true;
+          for(int i = 0; i < 10; i++){
+            if (Stand.Secret[i] != current.value[i]){
+              status = false;
+            }
+          }
+
+          outbuff[0] = 1;
+          if (status){
+            outbuff[1] = 1;
+          } else{
+            outbuff[1] = 0;
+          }
+          
+          break;
         case 65:                       //Init
           Init();
           outbuff[0] = 9;
@@ -385,8 +422,8 @@ void Send(){
         case 71:                       //GetErrorCode 
 
 
-          outbuff[0] = 0;
-           
+          outbuff[0] = 1;
+          outbuff[1] = Stand.HardwareState;
           break;
         case 72:                       //GetLaserState
           outbuff[0] = 1;
@@ -479,7 +516,9 @@ void Send(){
         case 87:                       // запись данных в ячейку, WriteEEPROM
           EEPROM.put(current.value[0], current.value[1]);
           outbuff[0] = 1;
-          outbuff[1] = EEPROM.read(current.value[0]);         
+          outbuff[1] = EEPROM.read(current.value[0]);  
+          
+
           break;
         case 88:                       // Запись в EEPROM базовых углов UpdateBaseAngles
           UpdateBaseAngles(current.value[0], current.value[1], current.value[2], current.value[3]);
@@ -511,6 +550,17 @@ void Send(){
     }
     
     SendUART();
+}
+
+int CreateConfigSecret(){
+    for(int i = 0; i < 10; i++){
+      Stand.Secret[i] = current.value[i];
+    }
+    EEPROM.put(20, Stand.Secret);
+
+}
+void GetConfigSecret(){
+    EEPROM.get(20, Stand.Secret);
 }
 
 void UpdateBaseAngles(unsigned int angle1, unsigned int angle2, unsigned int angle3, unsigned int angle4){
@@ -1086,7 +1136,7 @@ void GetLightNoises(){
   GetSignalsLevels();
   Stand.StartNoiseLevel1 = Stand.NoiseLevel1;
   Stand.StartNoiseLevel2 = Stand.NoiseLevel2;
-    if(flag){
+  if(flag){
     SetLaserState(1);
     delay(150);
   }
@@ -1387,40 +1437,15 @@ void GetSens(){
   Serial.print(AllPowerPD2);
 }
 
-//xc - точка, для которой вычисляется функция, x[], y[] - наборы существующих точек
-double Lagrange(double xc, double x[],double y[]) {
-  double Ch; 
-  double Zn;
-  double n = sizeof(x) / sizeof(x[0]); // количество элементов в массиве
-  int k;
-  double result = 0;
-  for (int i = 0; i < n; i++) { 
-    Ch = 1; 
-    Zn = 1;
-    for (k = 0; k < n; k++ ) {
-      if ( k == i ) 
-        continue;
-      Ch *= xc - x[k];
-    }
-    for(k= 0; k < n;k++) {
-      if (x[i] == x[k]) 
-        continue; 
-      Zn *= x[i] - x[k];
-    }
-    result += y[i]*Ch/Zn;
-  }
-  
-  return result; 
 
-}
-
+// In Progress
 void RunTests(){
   bool laser_test = TestLaser();
 
 
 }
 
-
+// In Progress
 bool TestLaser(){
   SetLaserPower(0);
   SetLaserState(0);
@@ -1435,6 +1460,7 @@ bool TestLaser(){
   }
   
 }
+// In Progress
 bool TestPlates(){
   SetLaserPower(0);
   SetLaserState(0);
