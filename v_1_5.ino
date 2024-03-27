@@ -12,10 +12,10 @@
   int analogPin2 = A1;
   int analogPin3 = A6;
   int analogPin4 = A7;
-  GStepper<STEPPER2WIRE> stepper1(200, 11, 12); // 5 6
-  GStepper<STEPPER2WIRE> stepper2(200, 9, 10); // 7 8
-  GStepper<STEPPER2WIRE> stepper3(200, 7, 8); // 9 10
-  GStepper<STEPPER2WIRE> stepper4(200, 5, 6); //11 12
+  GStepper<STEPPER2WIRE> stepper1(200, 5, 6); // 11, 12
+  GStepper<STEPPER2WIRE> stepper2(200, 7, 8); // 9, 10
+  GStepper<STEPPER2WIRE> stepper3(200, 9, 10); // 7 8
+  GStepper<STEPPER2WIRE> stepper4(200, 11, 12); //5 6
 
   //Лазер
   #define UD  4  
@@ -65,7 +65,7 @@
       unsigned int lenght = 0;         //длинна пакета
       char condbyte = 0;      // код ошибки
       char key;              // ID команды
-      unsigned int value[75];    // Параметры команды
+      unsigned int value[40];    // Параметры команды
       uint8_t checksum;// Контрольная сумма
       unsigned int params; //число паарметров 
       
@@ -168,7 +168,7 @@ void loop() {
   if (Listening()){
     
     Send(); //Действия, отправка
-    current.condbyte = 0; // костыль, перенести
+    current.condbyte = 0; // костыль, вечен
   }
   memset(printbuff, NULL, Sizes.printbuff);
   //ReWrite(); //очистка, подготовка к новому циклу
@@ -181,6 +181,7 @@ byte GetCRC(byte *pcBlock, byte len){
         crc = Crc8Table[crc ^ *pcBlock++];
     return crc;
 }
+
 // метод "прослушивает" канал передачи, и в сучае, 
 //если пришел полноценный пакет записывает его в глобальную стуктуру и возвращает "true"
 
@@ -207,7 +208,7 @@ bool Listening(){
       buff[i] = Serial.read();
       if(buff[i] == 255 ){
         Sizes.buff = i;
-        current.params = (i - 8)/2;
+        current.params = (i - 8)/2; // 2 + 2 + 1 + <params> + 1 + 1 + 2 - 1 
         if(CheckCRC(i-3) == 0){
           break;
         }
@@ -243,7 +244,7 @@ bool Listening(){
 //n - количесво байт для подсчета (за вычетом заголовка)
 void ReturnPackage (byte value[]){
   outbuff[0] = current.params;
-  for (int i=0; i<current.params * 2; i=i+2){
+  for (int i=0; i < current.params * 2; i=i+2){
     
     outbuff[i/2+1]= (value[i+3]<<8)| value[i+4];
   }
@@ -282,8 +283,9 @@ void BuildMessage (unsigned int value[]){
   printbuff[pointer+1] = GetCRC((byte*)&data, pointer-1);
   printbuff[pointer + 2] = B11111111;
   printbuff[pointer + 3] = B11111111;
-  Sizes.printbuff = pointer + 6;
+  Sizes.printbuff = pointer + 4;
 }
+
 void ReWrite(){
   current.condbyte = NULL;
   current.key = NULL;
@@ -292,9 +294,7 @@ void ReWrite(){
   memset(current.value, 0, sizeof(current.value));
   memset(buff, NULL, Sizes.buff);
   memset(outbuff, NULL, Sizes.outbuff);
-  memset(printbuff, NULL, Sizes.printbuff);
-
-  
+  memset(printbuff, NULL, Sizes.printbuff);  
 }
 
 uint8_t CheckCRC(int n){
@@ -307,7 +307,7 @@ uint8_t CheckCRC(int n){
 }
 
 void Send(){
-    
+    bool status = true;
     switch(current.key){
 
         case 17:                        //GetCurrentFirmwareVersion
@@ -326,7 +326,7 @@ void Send(){
           outbuff[1] = CreateConfigSecret();
           break;
         case 49:                        //OpenConfigMode
-          bool status = true;
+          
           for(int i = 0; i < 10; i++){
             if (Stand.Secret[i] != current.value[i]){
               status = false;
@@ -538,8 +538,6 @@ void Send(){
           outbuff[4] = BaseAngles.Angle4;
           break;
         default:
-          
-          
           current.condbyte +=1; //Неизвестный ID 8
           ReturnPackage(buff);
           break;
