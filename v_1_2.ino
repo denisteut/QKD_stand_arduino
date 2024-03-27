@@ -12,10 +12,10 @@
   int analogPin2 = A1;
   int analogPin3 = A6;
   int analogPin4 = A7;
-  GStepper<STEPPER2WIRE> stepper1(200, 11, 12); // 5 6
-  GStepper<STEPPER2WIRE> stepper2(200, 9, 10); // 7 8
-  GStepper<STEPPER2WIRE> stepper3(200, 7, 8); // 9 10
-  GStepper<STEPPER2WIRE> stepper4(200, 5, 6); //11 12
+  GStepper<STEPPER2WIRE> stepper1(200, 5, 6); 
+  GStepper<STEPPER2WIRE> stepper2(200, 7, 8); 
+  GStepper<STEPPER2WIRE> stepper3(200, 9, 10);
+  GStepper<STEPPER2WIRE> stepper4(200, 11, 12); 
 
   //Лазер
   #define UD  4  
