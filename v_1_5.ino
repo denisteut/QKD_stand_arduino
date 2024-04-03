@@ -555,7 +555,7 @@ int CreateConfigSecret(){
       Stand.Secret[i] = current.value[i];
     }
     EEPROM.put(20, Stand.Secret);
-
+return 1;
 }
 void GetConfigSecret(){
     EEPROM.get(20, Stand.Secret);
