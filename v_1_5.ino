@@ -95,7 +95,7 @@
       unsigned int BaseAngle4 = 0;
       // Характеристики стенда
       unsigned int HardwareState = 0;
-      unsigned int Firmware[3] = {0, 0, 0};
+      unsigned int Firmware[3] = {1, 5, 0};
       unsigned int MaxPayload = 0;
       unsigned int Secret[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
       } Stand;     
