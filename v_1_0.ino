@@ -10,10 +10,10 @@ int analogPin1 = A0;
 int analogPin2 = A1;
 int analogPin3 = A6;
 int analogPin4 = A7;
-GStepper<STEPPER2WIRE> stepper1(200, 11, 12); // 5 6
-GStepper<STEPPER2WIRE> stepper2(200, 9, 10); // 7 8
-GStepper<STEPPER2WIRE> stepper3(200, 7, 8); // 9 10
-GStepper<STEPPER2WIRE> stepper4(200, 5, 6); //11 12
+GStepper<STEPPER2WIRE> stepper1(200, 5, 6); // 5 6
+GStepper<STEPPER2WIRE> stepper2(200, 7, 8); // 7 8
+GStepper<STEPPER2WIRE> stepper3(200, 9, 10); // 9 10
+GStepper<STEPPER2WIRE> stepper4(200, 11, 12); //11 12
 
 //Лазер
 #define UD  4  
@@ -808,7 +808,7 @@ void SetBaseAngleWSens(){
         Step4_2 = Stand.Angle4;
       }
       SetPlateAngle(Stand.Angle4 + 1, 4);    //Поворот 4 пластины на 1 шаг
-    } while (Stand.Angle4 < 600);                //Пока пластина 4 не пройдет 180 градусов (600 шагов)
+    } while (Stand.Angle4 < 0);                //Пока пластина 4 не пройдет 180 градусов (0 шагов)
 
     Stand.MaxNoiseLevel2 = MaxSLevel2;
     Stand.MaxNoiseLevel1 = MaxSLevel1;
@@ -1048,7 +1048,7 @@ bool RotateWhileNotLineal(){
 // Настройка мощности лазера для работы фотодетекторов в линейном режиме
 void ToLineal(){
 	SetLaserState(1);
-	Stand.MaxLaserPower = 60;
+	Stand.MaxLaserPower = 80;
 	int StartPD1, StartPD2, MaxPD, TempPD1, TempPD2;
 	SetLaserPower(Stand.MaxLaserPower);
 	GetSignalsLevels();
